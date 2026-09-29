@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>Pi AI Dubbing</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="title">Pi AI Dubbing</h1>
+          <p class="subtitle">دبلجة فورية بصوت Pi.ai الحقيقي</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="connection-badge" class="badge badge-disconnected">
+          <span class="dot"></span>
+          <span id="backend-status-text">غير متصل</span>
+        </div>
+        <button id="btn-reconnect" class="btn-reconnect" title="إعادة الاتصال بالخادم">
+          🔄 Reconnect
+        </button>
+      </div>
+    </header>
+
+    <!-- Error Alert Banner -->
+    <div id="error-banner" class="error-banner" style="display: none;">
+      <span id="error-banner-text"></span>
+      <button id="error-banner-close">✕</button>
+    </div>
+
+    <!-- Project Connection Card (Auto-Pair Helper) -->
+    <div id="conn-helper-card" class="conn-helper-card disconnected">
+      <div class="conn-helper-header">
+        <div class="conn-helper-icon">⚡</div>
+        <div class="conn-helper-title-wrap">
+          <div id="conn-helper-title" class="conn-helper-title">اتصال بموقع المشروع</div>
+          <div id="conn-helper-subtitle" class="conn-helper-subtitle">جارٍ فحص الاتصال التلقائي...</div>
+        </div>
+      </div>
+      <div id="conn-helper-actions" class="conn-helper-actions">
+        <button id="btn-quick-pair" class="btn-quick-pair">
+          <span>⚡ ربط تلقائي بالموقع الحالي</span>
+        </button>
+        <button id="btn-open-site" class="btn-open-site" title="فتح موقع المشروع">
+          <span>🌐 فتح الموقع</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Status Grid -->
+    <section class="status-grid">
+      <div class="status-item">
+        <span class="label">Browser:</span>
+        <span id="val-browser" class="value text-emerald">Connected</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Backend:</span>
+        <span id="val-backend" class="value text-emerald">Connected</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Target Tab:</span>
+        <span id="val-target" class="value text-sky">YouTube</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Audio Capture:</span>
+        <span id="val-capture" class="value text-slate">OFF</span>
+      </div>
+      <div class="status-item">
+        <span class="label">STT Speech:</span>
+        <span id="val-stt" class="value text-slate">Idle</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Translation:</span>
+        <span id="val-translation" class="value text-slate">Idle</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Pi Voice:</span>
+        <span id="val-voice" class="value text-slate">Idle</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Latency:</span>
+        <span id="val-latency" class="value text-amber">1.8 sec</span>
+      </div>
+    </section>
+
+    <!-- Live Preview Stream of Dubbing -->
+    <section class="live-stream-box">
+      <div class="live-header">
+        <span class="live-title">البث المباشر للدبلجة (Live Segment):</span>
+        <span id="segment-badge" class="segment-pill">مقطع #0</span>
+      </div>
+      <div id="live-source-text" class="live-text-src">
+        (سيظهر كلام الفيديو الأصلي هنا فور التقاطه)
+      </div>
+      <div id="live-arabic-text" class="live-text-ar" dir="auto">
+        (ستظهر ترجمة وصوت Pi.ai الحقيقي هنا)
+      </div>
+    </section>
+
+    <!-- Primary Control Buttons -->
+    <section class="action-buttons">
+      <button id="btn-start" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span>بدء الدبلجة</span>
+      </button>
+
+      <button id="btn-stop" class="btn btn-danger" disabled>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+        <span>إيقاف الدبلجة</span>
+      </button>
+
+      <div class="btn-group">
+        <button id="btn-pause" class="btn btn-secondary" disabled>
+          <span>إيقاف مؤقت</span>
+        </button>
+        <button id="btn-resume" class="btn btn-secondary" disabled>
+          <span>استئناف</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Toggle Controls -->
+    <section class="toggles-section">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">كتم الصوت الأصلي للمقطع</span>
+          <span class="toggle-desc">Mute Original Video Audio</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="chk-mute">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">إظهار الترجمة فوق الفيديو</span>
+          <span class="toggle-desc">Arabic Subtitle Overlay</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="chk-subtitles" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Audio Synchronization Delay -->
+    <section class="delay-section">
+      <div class="delay-header">
+        <span class="delay-label">تأخير الصوت والمزامنة (Audio Delay):</span>
+        <span id="delay-val" class="delay-val">0ms</span>
+      </div>
+      <div class="delay-buttons">
+        <button class="btn-delay" data-delay="-500">-500ms</button>
+        <button class="btn-delay" data-delay="-250">-250ms</button>
+        <button class="btn-delay active" data-delay="0">0ms</button>
+        <button class="btn-delay" data-delay="250">+250ms</button>
+        <button class="btn-delay" data-delay="500">+500ms</button>
+        <button class="btn-delay" data-delay="1000">+1000ms</button>
+      </div>
+    </section>
+
+    <!-- Diagnostics Panel (Section 22) -->
+    <details class="diagnostics-details" open>
+      <summary class="diagnostics-summary">
+        <span>🔍 تشخيص النظام (Extension Diagnostics)</span>
+        <span id="diag-errors-badge" class="badge-ok">0 Errors</span>
+      </summary>
+      <div class="diagnostics-grid">
+        <div class="diag-item">
+          <span class="diag-label">Extension:</span>
+          <span id="diag-ext" class="diag-val text-emerald">Loaded</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Manifest:</span>
+          <span id="diag-manifest" class="diag-val text-emerald">OK (V3)</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Service Worker:</span>
+          <span id="diag-sw" class="diag-val text-emerald">Running</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Popup:</span>
+          <span id="diag-popup" class="diag-val text-emerald">OK</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Backend:</span>
+          <span id="diag-backend" class="diag-val text-slate">Checking...</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Content Script:</span>
+          <span id="diag-content" class="diag-val text-slate">Checking...</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Offscreen:</span>
+          <span id="diag-offscreen" class="diag-val text-emerald">Ready</span>
+        </div>
+        <div class="diag-item">
+          <span class="diag-label">Tab Capture:</span>
+          <span id="diag-capture" class="diag-val text-sky">Ready</span>
+        </div>
+        <div class="diag-item full-width">
+          <span class="diag-label">Errors:</span>
+          <span id="diag-errors" class="diag-val text-slate">0 (لا توجد أخطاء)</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Backend Connection Settings (Collapsible) -->
+    <details class="server-config-details">
+      <summary class="server-config-summary">
+        <span>⚙️ إعدادات رابط المشروع والخادم (Backend Server)</span>
+        <span id="server-url-badge" class="server-url-badge">Auto</span>
+      </summary>
+      <div class="server-config-body">
+        <div class="input-with-label">
+          <label class="config-field-label">رابط خادم المشروع (Web App / Cloud Run / Localhost):</label>
+          <div class="server-input-row">
+            <input type="text" id="input-backend-url" class="server-url-input" placeholder="https://... أو http://localhost:3000" />
+            <button id="btn-save-backend-url" class="btn-save-url">حفظ وتطبيق</button>
+          </div>
+        </div>
+        <div class="config-tools-row">
+          <button id="btn-use-current-tab" class="btn-tool-mini" title="استخراج الرابط من التبويب المفتوح حالياً">
+            🎯 استخدام التبويب النشط
+          </button>
+          <button id="btn-test-connection" class="btn-tool-mini" title="فحص استجابة الخادم">
+            🔍 فحص الاتصال (Ping)
+          </button>
+        </div>
+        <div id="test-result-indicator" class="test-result-indicator" style="display: none;"></div>
+      </div>
+    </details>
+
+    <!-- Footer Links -->
+    <footer class="footer">
+      <span>مدعوم بـ Chromium وPi.ai الحقيقي</span>
+      <span>•</span>
+      <a href="http://localhost:3000" id="link-dashboard" target="_blank" class="footer-link">لوحة التحكم الرئيسية للمشروع</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

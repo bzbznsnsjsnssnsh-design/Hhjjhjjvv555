@@ -1,0 +1,8 @@
+{
+  "name": "Remix Pi.ai Chromium Real Controller",
+  "description": "Real Chromium-powered automation and live remote browser interface interacting directly with the genuine Pi.ai page, DOM, and responses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
